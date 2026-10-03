@@ -1,0 +1,234 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Gondal Logo Designer — "Frosted glass studio" design system.
+ * Dark ink canvas, floating gradient light, frosted glass surfaces.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Glass system */
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-border: var(--glass-border);
+  --color-glass-border-strong: var(--glass-border-strong);
+
+  /* Surfaces & brand */
+  --color-surface: var(--surface);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-glow: var(--glow);
+  --color-highlight: var(--highlight);
+
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+:root {
+  --radius: 1rem;
+
+  /* Ink canvas */
+  --background: oklch(0.152 0.03 264);
+  --foreground: oklch(0.985 0.003 247.9);
+  --surface: oklch(0.19 0.035 264);
+
+  /* Brand light */
+  --primary: oklch(0.6 0.22 285);
+  --primary-foreground: oklch(0.985 0.003 247.9);
+  --accent: oklch(0.8 0.12 217);
+  --accent-foreground: oklch(0.152 0.03 264);
+  --highlight: oklch(0.72 0.21 330);
+
+  /* Frosted glass surfaces */
+  --glass: oklch(1 0 0 / 5%);
+  --glass-strong: oklch(1 0 0 / 8%);
+  --glass-border: oklch(1 0 0 / 10%);
+  --glass-border-strong: oklch(1 0 0 / 16%);
+
+  /* Soft tints behind icons */
+  --brand-soft: oklch(0.6 0.22 285 / 18%);
+
+  --muted: oklch(1 0 0 / 6%);
+  --muted-foreground: oklch(0.72 0.02 257);
+  --secondary: oklch(1 0 0 / 6%);
+  --secondary-foreground: oklch(0.985 0.003 247.9);
+  --card: oklch(1 0 0 / 5%);
+  --card-foreground: oklch(0.985 0.003 247.9);
+  --popover: oklch(0.19 0.035 264);
+  --popover-foreground: oklch(0.985 0.003 247.9);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.985 0.003 247.9);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.8 0.12 217 / 60%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
+}
+
+/* Floating ambient light */
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
+}
+
+@keyframes floaty-reverse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(18px);
+  }
+}
+
+@utility float-a {
+  animation: floaty 7s ease-in-out infinite;
+}
+
+@utility float-b {
+  animation: floaty-reverse 9s ease-in-out infinite;
+}
+
+/* Gentle entrance */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-rise {
+  animation: rise 0.7s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* Generated logo framing and internal motion */
+@utility logo-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.logo-frame > svg,
+.logo-frame > span > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+}
+
+.generated-logo .logo-mark,
+.generated-logo .logo-detail,
+.generated-logo .logo-emblem,
+.generated-logo .logo-wordmark,
+.generated-logo .logo-initial {
+  transition: transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 420ms ease, filter 420ms ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (hover: hover) {
+  .group:hover .generated-logo .logo-mark {
+    transform: translateY(-5px) rotate(-2deg) scale(1.04);
+    filter: brightness(1.12) saturate(1.12);
+  }
+
+  .group:hover .generated-logo .logo-emblem {
+    transform: rotate(3deg) scale(1.015);
+  }
+
+  .group:hover .generated-logo .logo-wordmark,
+  .group:hover .generated-logo .logo-initial {
+    transform: translateY(2px);
+  }
+
+  .group:hover .generated-logo .logo-flame {
+    transform: translateY(-7px) scale(1.08);
+    filter: brightness(1.18) saturate(1.22);
+  }
+
+  .group:hover .generated-logo .logo-utensils {
+    transform: translateX(4px);
+  }
+
+  .group:hover .generated-logo .logo-sparkles {
+    transform: rotate(8deg) scale(1.12);
+    opacity: 1;
+  }
+
+  .group:hover .generated-logo .logo-orbit {
+    transform: rotate(8deg);
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .generated-logo *,
+  .logo-frame > svg {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
