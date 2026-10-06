@@ -1,19 +1,20 @@
 import {
-  Sparkles, Mic, MicOff, ImagePlus, ShieldCheck, ShieldAlert, Lock, Upload, ArrowLeft, ArrowRight,
-  Globe2, CreditCard, Landmark, CheckCircle2, X, BadgeCheck, Download,
+  Sparkles, Mic, MicOff, ImagePlus, BadgeCheck, Download, ArrowLeft, ArrowRight,
+  Globe2, CheckCircle2, X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
-  INDUSTRIES, PALETTES, STYLES, buildLogo, customPalette,
+  INDUSTRIES, PALETTES, STYLES, buildLogo, customPalette, downloadBlob, svgToPng,
   type Dimension, type Industry, type LogoInput, type Palette, type Style,
 } from "@/lib/logo-engine";
 import { COUNTRIES, detectCountry, localPrice, type Country } from "@/lib/currency";
 
 const TIERS = [
-  { id: "basic", name: "Basic", price: 1, features: ["High-quality PNG (1000px)", "Clean white background", "Personal use license", "No watermark"] },
-  { id: "standard", name: "Standard", price: 10, popular: true, features: ["High-Res PNG (2000px)", "Transparent background", "Commercial rights", "No watermark"] },
-  { id: "premium", name: "Premium", price: 25, features: ["Vector SVG source files", "High-Res transparent PNG", "Social Media Kit (post + banner)", "Full commercial rights", "No watermark"] },
+  { id: "basic", name: "Basic", price: 0, features: ["High-quality PNG (1000px)", "Clean white background", "Personal use license", "No watermark"] },
+  { id: "standard", name: "Standard", price: 0, popular: true, features: ["High-Res PNG (2000px)", "Transparent background", "Commercial rights", "No watermark"] },
+  { id: "premium", name: "Premium", price: 0, features: ["Vector SVG source files", "High-Res transparent PNG", "Social Media Kit (post + banner)", "Full commercial rights", "No watermark"] },
 ] as const;
 type Tier = (typeof TIERS)[number];
 
@@ -98,12 +99,17 @@ export default function LogoGenerator() {
               <p className="animate-pulse text-sm text-muted-foreground">Crafting your premium concepts…</p>
             </div>
           ) : result ? (
-            <Results input={result} selected={selected} setSelected={setSelected} country={country} onEdit={() => setPhase("create")} />
+            <Results input={result} selected={selected} setSelected={setSelected} onEdit={() => setPhase("create")} />
           ) : null}
         </div>
 
         <footer className="border-t border-glass-border py-8 text-center text-xs text-muted-foreground">
-          Gondal AI Logo Generator · Prices are set in US Dollars ($1–$25); local amounts are estimates.
+          <nav className="mb-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link to="/about" className="font-medium hover:text-foreground">About Us</Link>
+            <Link to="/privacy" className="font-medium hover:text-foreground">Privacy Policy</Link>
+            <Link to="/terms" className="font-medium hover:text-foreground">Terms of Use</Link>
+          </nav>
+          Gondal AI Logo Generator · Every package is free ($0) — no payment needed.
         </footer>
       </div>
 
@@ -482,25 +488,36 @@ function Stepper({ onGenerate, initial }: { onGenerate: (i: LogoInput) => void; 
 /* ---------------- Results + pricing + payment ---------------- */
 
 function Price({ usd, country, big }: { usd: number; country: Country | null; big?: boolean }) {
-  const local = localPrice(usd, country);
+  const local = usd > 0 ? localPrice(usd, country) : null;
   return (
     <div>
-      <p className={`font-display font-bold ${big ? "text-4xl" : "text-lg"}`}>${usd}</p>
+      <p className={`font-display font-bold ${big ? "text-4xl" : "text-lg"}`}>{usd === 0 ? "Free" : `$${usd}`}</p>
       {local ? <p className="text-xs text-muted-foreground">({local})</p> : null}
     </div>
   );
 }
 
-function Results({ input, selected, setSelected, country, onEdit }: {
-  input: LogoInput; selected: number; setSelected: (n: number) => void; country: Country | null; onEdit: () => void;
+function Results({ input, selected, setSelected, onEdit }: {
+  input: LogoInput; selected: number; setSelected: (n: number) => void; onEdit: () => void;
 }) {
   const [tier, setTier] = useState<Tier | null>(null);
-  const [blocked, setBlocked] = useState(false);
-  const payRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
 
-  function pick(t: Tier) {
-    setTier(t);
-    setTimeout(() => payRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+  async function download() {
+    setDownloading(true);
+    try {
+      const isBasic = !tier || tier.id === "basic";
+      const size = isBasic ? 1000 : 2000;
+      const svg = buildLogo(input, selected, !isBasic);
+      const png = await svgToPng(svg, size, size, isBasic ? "#ffffff" : undefined);
+      const slug = input.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "gondal-logo";
+      downloadBlob(png, `${slug}-logo-${size}px.png`);
+      if (tier?.id === "premium") {
+        downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `${slug}-logo.svg`);
+      }
+    } finally {
+      setDownloading(false);
+    }
   }
 
   return (
@@ -513,7 +530,7 @@ function Results({ input, selected, setSelected, country, onEdit }: {
         <div className="mt-5 grid gap-4 md:grid-cols-[1fr_220px]">
           <div className="group relative aspect-square overflow-hidden rounded-2xl border border-glass-border">
             <div className="logo-frame size-full p-5 sm:p-8" dangerouslySetInnerHTML={{ __html: buildLogo(input, selected) }} />
-            <span className="absolute top-3 left-3 rounded-full bg-background/80 px-2.5 py-1 text-[10px] font-semibold backdrop-blur"><Lock className="mr-1 inline size-3" />Preview · locked until payment</span>
+            <span className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-background/80 px-2.5 py-1 text-[10px] font-semibold backdrop-blur"><BadgeCheck className="inline size-3" />Free · no payment required</span>
           </div>
           <div className="grid grid-cols-3 gap-3 md:grid-cols-1">
             {[0, 1, 2].map((v) => (
@@ -524,14 +541,14 @@ function Results({ input, selected, setSelected, country, onEdit }: {
             ))}
           </div>
         </div>
-        <Button onClick={() => setBlocked(true)} className="mt-5 h-12 w-full rounded-lg bg-gradient-to-r from-primary to-accent font-semibold">
-          <Download aria-hidden /> Download logo
+        <Button onClick={download} disabled={downloading} className="mt-5 h-12 w-full rounded-lg bg-gradient-to-r from-primary to-accent font-semibold">
+          <Download aria-hidden /> {downloading ? "Preparing your files…" : "Download logo"}
         </Button>
       </section>
 
       <section className="rounded-lg border border-glass-border bg-glass p-5 backdrop-blur-xl sm:p-6">
         <h2 className="font-display text-2xl font-bold">Choose your package</h2>
-        <p className="mt-1 text-sm text-muted-foreground">One-time payment. Prices are set in US Dollars ($1–$25){country && country.currency !== "USD" ? `; ${country.currency} amounts are estimates for ${country.name}.` : "."}</p>
+        <p className="mt-1 text-sm text-muted-foreground">Every package is completely free — pick the one with the extras you want and download instantly.</p>
         <div className="mt-4 flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm font-medium">
           <BadgeCheck className="size-5 shrink-0 text-accent" /> No watermark on any package — not even Basic.
         </div>
@@ -540,96 +557,15 @@ function Results({ input, selected, setSelected, country, onEdit }: {
             <div key={t.id} className={`relative flex flex-col rounded-2xl border p-5 ${tier?.id === t.id ? "border-accent ring-2 ring-accent/40" : "popular" in t ? "border-accent/60 bg-accent/5" : "border-glass-border"}`}>
               {"popular" in t ? <span className="absolute -top-2.5 left-5 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold text-accent-foreground">MOST POPULAR</span> : null}
               <p className="font-display text-sm font-semibold">{t.name}</p>
-              <div className="mt-2"><Price usd={t.price} country={country} big /></div>
+              <div className="mt-2"><Price usd={t.price} country={null} big /></div>
               <ul className="mt-4 flex-1 space-y-2 text-xs text-muted-foreground">
                 {t.features.map((f) => <li key={f} className="flex gap-2"><CheckCircle2 className="size-4 shrink-0 text-accent" />{f}</li>)}
               </ul>
-              <Button onClick={() => pick(t)} className="mt-5 rounded-lg bg-gradient-to-r from-primary to-accent font-semibold">Select {t.name}</Button>
+              <Button onClick={() => setTier(t)} className="mt-5 rounded-lg bg-gradient-to-r from-primary to-accent font-semibold">Select {t.name}</Button>
             </div>
           ))}
         </div>
       </section>
-
-      {tier ? <div ref={payRef} className="scroll-mt-6"><Payment tier={tier} country={country} onDemo={() => setBlocked(true)} /></div> : null}
-
-      {blocked ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm" onClick={() => setBlocked(false)}>
-          <div role="alertdialog" aria-modal className="animate-rise w-full max-w-sm rounded-2xl border border-glass-border-strong bg-popover p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-accent"><Lock className="size-6" /></div>
-            <p className="mt-4 font-display text-lg font-semibold">Please complete the payment first to unlock your high-quality logo.</p>
-            <Button onClick={() => { setBlocked(false); if (!tier) document.querySelector("#top")?.scrollIntoView(); }} className="mt-5 w-full rounded-lg bg-gradient-to-r from-primary to-accent">OK</Button>
-          </div>
-        </div>
-      ) : null}
     </div>
-  );
-}
-
-function Payment({ tier, country, onDemo }: { tier: Tier; country: Country | null; onDemo: () => void }) {
-  const [email, setEmail] = useState("");
-  const [txn, setTxn] = useState("");
-  const [shot, setShot] = useState<string | null>(null);
-  const [err, setErr] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const field = "w-full rounded-xl border border-glass-border bg-glass px-4 py-3 text-sm placeholder:text-muted-foreground/70 focus:border-accent/60 focus:outline-none";
-
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || email.length > 255) { setErr("Please enter a valid email."); return; }
-    if (!txn.trim() || txn.length > 64) { setErr("Please enter your transaction ID."); return; }
-    if (!shot) { setErr("Please upload your payment screenshot."); return; }
-    setErr("");
-    setSubmitted(true);
-  }
-
-  return (
-    <section className="rounded-lg border border-glass-border bg-glass p-5 backdrop-blur-xl sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-2xl font-bold">Secure checkout · {tier.name}</h2>
-        <div className="text-right"><Price usd={tier.price} country={country} /></div>
-      </div>
-      <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck className="size-4 text-accent" /> Every payment is reviewed before your files are released.</p>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {[{ icon: CreditCard, t: "Card payment" }, { icon: Landmark, t: "Direct bank checkout" }].map(({ icon: I, t }) => (
-          <div key={t} className="flex items-center gap-3 rounded-xl border border-glass-border p-4 opacity-70">
-            <I className="size-5 text-muted-foreground" />
-            <span className="text-sm font-medium">{t}</span>
-            <span className="ml-auto rounded-full bg-glass-strong px-2 py-0.5 text-[10px] font-semibold">COMING SOON</span>
-          </div>
-        ))}
-      </div>
-      <Button type="button" variant="outline" onClick={onDemo} className="mt-3 w-full rounded-lg border-glass-border bg-glass">Demo checkout</Button>
-
-      {submitted ? (
-        <div className="mt-6 rounded-xl border border-accent/40 bg-accent/10 p-5 text-center">
-          <CheckCircle2 className="mx-auto size-8 text-accent" />
-          <p className="mt-2 font-display font-semibold">Payment proof submitted</p>
-          <p className="mt-1 text-xs text-muted-foreground">Status: pending verification. Once your receipt is confirmed, your {tier.name} files will be sent to {email}.</p>
-        </div>
-      ) : (
-        <form onSubmit={submit} className="mt-6 space-y-3 rounded-xl border border-glass-border p-5">
-          <p className="font-display font-semibold">Manual payment · upload your receipt</p>
-          <p className="text-xs text-muted-foreground">Bank details will be shown here soon. After paying, upload your screenshot below.</p>
-          <input className={field} type="email" maxLength={255} placeholder="Your email (for file delivery)" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input className={field} maxLength={64} placeholder="Transaction ID / reference" value={txn} onChange={(e) => setTxn(e.target.value)} />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-glass-border p-5 text-center hover:border-accent/50">
-              {shot ? <img src={shot} alt="Payment screenshot" className="max-h-32 rounded object-contain" /> : <><Upload className="size-6 text-accent" /><span className="text-sm font-medium">Upload payment screenshot</span></>}
-              <input type="file" accept="image/*" className="sr-only" onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f && f.type.startsWith("image/") && f.size <= 5 * 1024 * 1024) setShot(URL.createObjectURL(f)); else if (f) setErr("Image must be under 5 MB.");
-              }} />
-            </label>
-            <div role="alert" className="flex gap-2 rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-xs leading-relaxed">
-              <ShieldAlert className="size-5 shrink-0 text-destructive" />
-              <p><strong>Warning:</strong> Uploading fake screenshots or fraudulent payment proofs will result in automatic rejection and legal action against your account. Every receipt is verified before files are released.</p>
-            </div>
-          </div>
-          {err ? <p className="text-xs text-destructive">{err}</p> : null}
-          <Button type="submit" className="h-12 w-full rounded-lg bg-gradient-to-r from-primary to-accent font-semibold"><Lock aria-hidden /> Submit for verification</Button>
-        </form>
-      )}
-    </section>
   );
 }
